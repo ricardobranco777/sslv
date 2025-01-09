@@ -1,0 +1,7 @@
+sslv
+sslv.exe
+*.so
+*.o
+*.d
+.depend
+.gdbinit
