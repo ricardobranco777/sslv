@@ -1,7 +1,7 @@
-sslv
-sslv.exe
-*.so
-*.o
-*.d
-.depend
-.gdbinit
+**/sslv
+**/sslv.exe
+**/*.so
+**/*.o
+**/*.d
+**/.depend
+**/.gdbinit
