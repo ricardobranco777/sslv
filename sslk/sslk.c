@@ -2,7 +2,7 @@
  * OpenSSL / LibreSSL BoringSSL
  */
 int
-X509_verify_cert(void *ctx __attribute__((unused)))
+X509_verify_cert(void)
 {
 	return (1);
 }
@@ -11,11 +11,7 @@ X509_verify_cert(void *ctx __attribute__((unused)))
  * GnuTLS
  */
 int
-gnutls_certificate_verify_peers(
-	void *session __attribute__((unused)),
-	void *data __attribute__((unused)),
-	unsigned int elements __attribute__((unused)),
-	unsigned int *status __attribute__((unused)))
+gnutls_certificate_verify_peers(void)
 {
 	return (0);
 }
