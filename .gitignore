@@ -10,3 +10,4 @@ sslv/sslv
 **/.depend
 **/.gdbinit
 **/*.pico
+**/index.html*
