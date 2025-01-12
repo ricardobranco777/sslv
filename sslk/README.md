@@ -2,7 +2,7 @@
 Get the `--insecure` flag for free.
 
 ```
-# Use gmake on Solaris / BSD
+# Use gmake on Solaris
 make
-LD_PRELOAD=./sslk.so program [options] [arguments]
+LD_PRELOAD=./libsslk.so program [options] [arguments]
 ```

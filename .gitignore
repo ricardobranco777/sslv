@@ -1,7 +1,12 @@
 sslv/sslv
 **/sslv.exe
+**/*.So
 **/*.so
-**/*.o
+**/*.so.*
+**/*.a
 **/*.d
+**/*.o
+**/*.po
 **/.depend
 **/.gdbinit
+**/*.pico

@@ -1,7 +1,7 @@
 CFLAGS	:= -Wall -Wextra -fPIC
 LDFLAGS	:= -shared
 
-LIB	:= sslk.so
+LIB	:= libsslk.so
 
 $(LIB):	sslk.c
 	$(LINK.c) $^ -o $@
