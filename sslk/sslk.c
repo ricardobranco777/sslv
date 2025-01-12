@@ -29,6 +29,12 @@ gnutls_certificate_verify_peers(void)
 	return (0);
 }
 
+int
+gnutls_session_get_verify_cert_status(void)
+{
+	return (0);
+}
+
 /*
  * NSS
  */
