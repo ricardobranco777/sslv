@@ -8,17 +8,14 @@
 
 #include "extern.h"
 
-int
-main(int argc, char *argv[])
+#define USAGE	"Usage: %s dlopen LIBRARY | execve ARGV..."
+
+static int
+test_dlopen(const char *sopath)
 {
-	char *sopath = argv[1];
 	void *dlh;
 
-	if (argc != 2)
-		errx(1, "Usage: %s /path/to/library.so", argv[0]);
-
-	dlh = xdlopen(sopath, RTLD_LAZY | RTLD_LOCAL);
-	if (dlh == NULL) {
+	if ((dlh = xdlopen(sopath, RTLD_LAZY | RTLD_LOCAL)) == NULL) {
 		char *error = dlerror();
 		if (error != NULL)
 			errx(1, "%s: %s", sopath, dlerror());
@@ -41,4 +38,27 @@ main(int argc, char *argv[])
 
 	(void)dlclose(dlh);
 	return (0);
+}
+
+static int
+test_execve(char *argv[], char *envp[])
+{
+	// XXX fork
+	xexecve(argv[0], argv, envp);
+	return (-1);
+}
+
+int
+main(int argc, char *argv[], char *envp[])
+{
+	if (argc < 3)
+		errx(1, USAGE, argv[0]);
+
+	if (!strcmp(argv[1], "dlopen"))
+		return (test_dlopen(argv[2]));
+	else if (!strcmp(argv[1], "execve")) {
+		argv += 2;
+		return (test_execve(argv, envp));
+	} else
+		errx(1, USAGE, argv[0]);
 }

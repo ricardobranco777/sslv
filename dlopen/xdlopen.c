@@ -32,22 +32,17 @@ Write(int fd, const void *buf, size_t nbytes)
 	return (nbytes - nleft);
 }
 
-void *
-xdlopen(const char *path, int mode)
+static int
+get_memfd(const char *path)
 {
+	void *buf = MAP_FAILED;
 	struct stat sb;
-	void *buf;
 	int save_errno;
-	void *handle = NULL;
-	int fd, mfd;
-#if !defined(__FreeBSD__) && !defined(__DragonFly__)
-	char fdpath[4096];
-#endif
+	int fd, memfd;
 
-	fd = mfd = -1;
-
+	fd = memfd = -1;
 	if ((fd = open(path, O_RDONLY)) == -1)
-		return (NULL);
+		return (-1);
 
 	if (fstat(fd, &sb) == -1)
 		goto out;
@@ -56,50 +51,79 @@ xdlopen(const char *path, int mode)
 		goto out;
 
 #if defined(__DragonFly__) || defined(__sun__) || (defined(__NetBSD__) && __NetBSD_Version__ < 1099000000)
-	if ((mfd = shm_open("/xxx", O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
+	if ((memfd = shm_open("/xxx", O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
 		goto out;
 #elif defined(__MidnightBSD__)
-	if ((mfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
+	if ((memfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
 		goto out;
 #else
-	if ((mfd = memfd_create("xxx", 0)) == -1)
+	if ((memfd = memfd_create("xxx", MFD_CLOEXEC)) == -1)
 		goto out;
 #endif
 
-	if (ftruncate(mfd, sb.st_size) == -1)
+	if (ftruncate(memfd, sb.st_size) == -1)
 		goto out;
 
-	if (Write(mfd, buf, sb.st_size) == -1)
+	if (Write(memfd, buf, sb.st_size) == -1)
 		goto out;
 
-	(void)munmap(buf, sb.st_size);
+out:
+	save_errno = errno;
+
+	if (buf != MAP_FAILED)
+		(void)munmap(buf, sb.st_size);
+	(void)close(fd);
+
+	if (memfd != -1) {
+#if defined(__DragonFly__) || defined(__sun__) || (defined(__NetBSD__) && __NetBSD_Version__ < 1099000000)
+		(void)shm_unlink("/xxx");
+#endif
+		return (memfd);
+	}
+
+	errno = save_errno;
+	return (-1);
+}
+
+void *
+xdlopen(const char *path, int mode)
+{
+	void *handle = NULL;
+#if !defined(__FreeBSD__) && !defined(__DragonFly__)
+	char fdpath[4096];
+#endif
+	int memfd;
+
+	if ((memfd = get_memfd(path)) == -1)
+		return (NULL);
 
 #if defined(__FreeBSD__) || defined(__DragonFly__)
-	handle = fdlopen(mfd, mode);
+	handle = fdlopen(memfd, mode);
 #else
 #if defined(__NetBSD__)
 	// XXX On NetBSD this file descriptor is not visible in /proc/<pid>/fd
-	(void)snprintf(fdpath, sizeof(fdpath), "/dev/fd/%d", mfd);
+	(void)snprintf(fdpath, sizeof(fdpath), "/dev/fd/%d", memfd);
 #elif defined(__linux__)
-	(void)snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", mfd);
+	(void)snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", memfd);
 #else
-	(void)snprintf(fdpath, sizeof(fdpath), "/proc/%d/fd/%d", getpid(), mfd);
+	(void)snprintf(fdpath, sizeof(fdpath), "/proc/%d/fd/%d", getpid(), memfd);
 #endif
 	handle = dlopen(fdpath, mode);
 #endif
 
-out:
-	save_errno = errno;
-	if (mfd != -1) {
-#if defined(__DragonFly__) || defined(__sun__) || (defined(__NetBSD__) && __NetBSD_Version__ < 1099000000)
-		(void)shm_unlink("/xxx");
-#elif !defined(__MidnightBSD__)
-		(void)shm_unlink("memfd:xxx");
-#endif
-		(void)close(mfd);
-	}
-	if (fd != -1)
-		(void)close(fd);
-	errno = save_errno;
 	return (handle);
+}
+
+int
+xexecve(const char *path, char *const argv[], char *const envp[])
+{
+	int memfd;
+
+	if ((memfd = get_memfd(path)) == -1)
+		return (-1);
+
+	fexecve(memfd, argv, envp);
+
+	(void)close(memfd);
+	return (-1);
 }

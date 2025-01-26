@@ -6,8 +6,10 @@ extern "C" {
 #endif
 
 char *procmap(void);
-void *xdlopen(const char *, int);
 int scan_map(const char *);
+
+void *xdlopen(const char *, int);
+int xexecve(const char *, char *const __argv[], char *const __envp[]);
 
 #ifdef __cplusplus
 }
