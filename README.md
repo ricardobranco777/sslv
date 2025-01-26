@@ -1,4 +1,7 @@
-SSL shared-library hijacking fun.
+Shared-library hijacking fun.
 
-- [sslk](sslk) Get the `--insecure` flag for free
-- [sslv](sslv) Get OpenSSL version on systems without **openssl**(1)
+| Project | Description |
+| --- | --- |
+| [dlopen](dlopen) | Anonymized dlopen |
+| [sslk](sslk) | Get the `--insecure` flag for free |
+| [sslv](sslv) | Get OpenSSL version on systems without **openssl**(1) |
