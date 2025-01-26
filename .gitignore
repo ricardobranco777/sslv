@@ -11,3 +11,4 @@ sslv/sslv
 **/.gdbinit
 **/*.pico
 **/index.html*
+**/*.pem
