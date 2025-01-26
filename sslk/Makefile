@@ -2,7 +2,7 @@ OS:sh = uname
 
 SRCS=	sslk.c
 
-.if $(OS) == "FreeBSD" || $(OS) == "DragonFly"
+.if $(OS) == "FreeBSD" || $(OS) == "MidnightBSD" || $(OS) == "DragonFly"
 
 SHLIB_NAME= libsslk.so
 
