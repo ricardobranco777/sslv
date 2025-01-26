@@ -9,7 +9,6 @@ set -eu
 
 cleanup() {
 	set +e
-	echo "Cleaning up..."
 	if [ -n "$SERVER_PID" ] ; then
 		kill "$SERVER_PID"
 		wait "$SERVER_PID"
@@ -22,7 +21,7 @@ trap cleanup EXIT
 openssl req -x509 -newkey rsa:4096 -keyout "$KEY_FILE" -out "$CERT_FILE" -days 365 -nodes -subj "/CN=localhost" >/dev/null 2>&1
 
 # Start the OpenSSL test server
-openssl s_server -accept "$PORT" -key "$KEY_FILE" -cert "$CERT_FILE" -WWW >/dev/null 2>&1 &
+openssl s_server -accept "$PORT" -key "$KEY_FILE" -cert "$CERT_FILE" -www >/dev/null 2>&1 &
 SERVER_PID=$!
 
 sleep 1
