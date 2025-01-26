@@ -12,3 +12,4 @@ sslv/sslv
 **/*.pico
 **/index.html*
 **/*.pem
+**/test
