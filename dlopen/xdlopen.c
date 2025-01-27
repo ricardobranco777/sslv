@@ -50,7 +50,7 @@ xdlopen(const char *path, int mode)
 		return (NULL);
 
 	if (fstat(fd, &sb) == -1)
-		return (NULL);
+		goto out;
 
 	if ((buf = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED)
 		goto out;
