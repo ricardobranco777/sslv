@@ -142,6 +142,8 @@ test_execve(void)
 	else {
 		// Avoid zombie process
 		signal(SIGCHLD, SIG_IGN);
+		// Give time for the child to exec
+		sleep(1);
 		return pid;
 	}
 }
