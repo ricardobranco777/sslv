@@ -172,11 +172,15 @@ main(int argc, char *argv[])
 #else
 	// This call needs security.bsd.unprivileged_proc_debug=1 on MidnightBSD
 	char *map = procmap(pid);
-	if (map != NULL && strstr(map, scan) != NULL)
-		printf("%s\n", map);
-	else
-		printf("PASS\n");
-	free(map);
+	if (map != NULL) {
+		char *line = strtok(map, "\n");
+		while (line != NULL) {
+			if (strstr(line, scan) != NULL)
+				printf("FAIL: %s\n", line);
+			line = strtok(NULL, "\n");
+		}
+		free(map);
+	}
 #endif
 
 	if (pid != getpid()) {
