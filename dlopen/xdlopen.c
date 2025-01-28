@@ -50,14 +50,14 @@ get_memfd(const char *path)
 	if ((buf = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED)
 		goto out;
 
-#if defined(__DragonFly__) || defined(__sun__) || (defined(__NetBSD__) && __NetBSD_Version__ < 1099000000)
-	if ((memfd = shm_open("/xxx", O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
+#ifdef MFD_CLOEXEC
+	if ((memfd = memfd_create("xxx", MFD_CLOEXEC)) == -1)
 		goto out;
-#elif defined(__MidnightBSD__)
+#elif defined(SHM_ANON)
 	if ((memfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
 		goto out;
 #else
-	if ((memfd = memfd_create("xxx", MFD_CLOEXEC)) == -1)
+	if ((memfd = shm_open("/xxx", O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
 		goto out;
 #endif
 
@@ -75,7 +75,7 @@ out:
 	(void)close(fd);
 
 	if (memfd != -1) {
-#if defined(__DragonFly__) || defined(__sun__) || (defined(__NetBSD__) && __NetBSD_Version__ < 1099000000)
+#ifndef MFD_CLOEXEC
 		(void)shm_unlink("/xxx");
 #endif
 		return (memfd);
