@@ -148,6 +148,29 @@ test_execve(void)
 	}
 }
 
+static void
+print_map(pid_t pid, const char *scan)
+{
+#ifdef __sun__
+	if (!scan_map(pid, scan))
+		printf("PASS\n");
+#else
+	// This call needs security.bsd.unprivileged_proc_debug=1 on MidnightBSD
+	char *map = procmap(pid);
+	if (map != NULL) {
+		char *line = strtok(map, "\n");
+		while (line != NULL) {
+			if (scan == NULL)
+				printf("%s\n", line);
+			else if (strstr(line, scan) != NULL)
+				printf("FAIL: %s\n", line);
+			line = strtok(NULL, "\n");
+		}
+		free(map);
+	}
+#endif
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -165,25 +188,14 @@ main(int argc, char *argv[])
 		pid = test_execve();
 		scan = "sleep";
 	}
+	else if (!strcmp(argv[1], "map")) {
+		print_map(getpid(), NULL);
+		return (0);
+	}
 	else
 		errx(1, USAGE, argv[0]);
 
-#ifdef __sun__
-	if (!scan_map(pid, scan))
-		printf("PASS\n");
-#else
-	// This call needs security.bsd.unprivileged_proc_debug=1 on MidnightBSD
-	char *map = procmap(pid);
-	if (map != NULL) {
-		char *line = strtok(map, "\n");
-		while (line != NULL) {
-			if (strstr(line, scan) != NULL)
-				printf("FAIL: %s\n", line);
-			line = strtok(NULL, "\n");
-		}
-		free(map);
-	}
-#endif
+	print_map(pid, scan);
 
 	if (pid != getpid()) {
 		char path[PATH_MAX];

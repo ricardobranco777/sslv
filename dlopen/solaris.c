@@ -19,7 +19,7 @@ scan_map(pid_t pid, const char *path) {
 		err(1, "open");
 
 	while (read(fd, &entry, sizeof(entry)) == sizeof(entry))
-		if (strstr(entry.pr_mapname, path) != NULL) {
+		if (path == NULL || strstr(entry.pr_mapname, path) != NULL) {
 			printf("%s\n", entry.pr_mapname);
 			found = 1;
 		}
