@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <err.h>
@@ -6,12 +7,15 @@
 #include <sys/procfs.h>
 
 int
-scan_map(const char *path) {
-	int found = 0;
+scan_map(pid_t pid, const char *path) {
+	char map[1024];
 	prmap_t entry;
+	int found = 0;
 	int fd;
 
-	if ((fd = open("/proc/self/map", O_RDONLY)) == -1)
+	(void)snprintf(map, sizeof(map), "/proc/%d/map", pid);
+
+	if ((fd = open(map, O_RDONLY)) == -1)
 		err(1, "open");
 
 	while (read(fd, &entry, sizeof(entry)) == sizeof(entry))

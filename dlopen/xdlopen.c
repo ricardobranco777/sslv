@@ -75,9 +75,7 @@ out:
 	(void)close(fd);
 
 	if (memfd != -1) {
-#ifndef MFD_CLOEXEC
 		(void)shm_unlink("/xxx");
-#endif
 		return (memfd);
 	}
 

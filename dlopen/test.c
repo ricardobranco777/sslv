@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +14,20 @@
 #include "extern.h"
 
 #define USAGE	"Usage: %s dlopen|execve"
+
+#if defined(__linux__)
+#define PATH_EXE	"/proc/%d/exe"
+#elif defined(__sun__)
+#define PATH_EXE	"/proc/%d/path/a.out"
+#else
+#define PATH_EXE	"/proc/%d/file"
+#endif
+
+#ifdef __linux__
+#define PATH_SLEEP	"/usr/bin/sleep"
+#else
+#define PATH_SLEEP	"/bin/sleep"
+#endif
 
 static char *
 get_library_path(const char *name)
@@ -107,42 +122,74 @@ test_dlopen(void)
 	else
 		printf("FAIL\n");
 
-#ifndef __sun__
+	return getpid();
+}
+
+static int
+test_execve(void)
+{
+	pid_t pid;
+
+	if ((pid = fork()) == -1)
+		err(1, "fork");
+	else if (!pid) {
+		char *argv[] = {"", "777", NULL};
+		char *envp[] = {NULL};
+		xexecve(PATH_SLEEP, argv, envp);
+		warn("execve");
+		_exit(1);
+	}
+	else {
+		// Avoid zombie process
+		signal(SIGCHLD, SIG_IGN);
+		return pid;
+	}
+}
+
+int
+main(int argc, char *argv[])
+{
+	const char *scan;
+	pid_t pid;
+
+	if (argc != 2)
+		errx(1, USAGE, argv[0]);
+
+	if (!strcmp(argv[1], "dlopen")) {
+		pid = test_dlopen();
+		scan = "libcrypto.so";
+	}
+	else if (!strcmp(argv[1], "execve")) {
+		pid = test_execve();
+		scan = "sleep";
+	}
+	else
+		errx(1, USAGE, argv[0]);
+
+#ifdef __sun__
+	if (!scan_map(pid, scan))
+		printf("PASS\n");
+#else
 	// This call needs security.bsd.unprivileged_proc_debug=1 on MidnightBSD
-	char *map = procmap();
-	if (map != NULL && strstr(map, "libcrypto.so") != NULL)
+	char *map = procmap(pid);
+	if (map != NULL && strstr(map, scan) != NULL)
 		printf("%s\n", map);
 	else
 		printf("PASS\n");
 	free(map);
-#else
-	if (!scan_map(sopath))
-		printf("PASS\n");
 #endif
 
-	(void)dlclose(dlh);
-	return (0);
-}
+	if (pid != getpid()) {
+		char path[PATH_MAX];
+		char link[PATH_MAX];
 
-static int
-test_execve(char *argv[], char *envp[])
-{
-	// XXX fork
-	xexecve(argv[0], argv, envp);
-	return (-1);
-}
+		(void)snprintf(link, sizeof(link), PATH_EXE, pid);
+		if (readlink(link, path, sizeof(path)) == -1)
+			warn("readlink: %s", link);
+		else
+			printf("executable: %s\n", path);
 
-int
-main(int argc, char *argv[], char *envp[])
-{
-	if (argc != 2)
-		errx(1, USAGE, argv[0]);
-
-	if (!strcmp(argv[1], "dlopen"))
-		return (test_dlopen());
-	else if (!strcmp(argv[1], "execve")) {
-		argv += 2;
-		return (test_execve(argv, envp));
-	} else
-		errx(1, USAGE, argv[0]);
+		if (kill(pid, SIGTERM) == -1)
+			err(1, "kill %d", pid);
+	}
 }

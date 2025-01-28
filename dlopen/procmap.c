@@ -1,30 +1,34 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #include "extern.h"
 
 #if defined(__FreeBSD__) || defined(__DragonFly__)
-#define PATH	"/proc/curproc/map"
+#define PATH	"/proc/%d/map"
 #elif defined(__NetBSD__)
-#define PATH	"/proc/curproc/maps"
+#define PATH	"/proc/%d/maps"
 #elif defined(__linux__)
-#define PATH	"/proc/self/maps"
+#define PATH	"/proc/%d/maps"
 #elif defined(__sun__)
-#define PATH	"/proc/self/map"
+#define PATH	"/proc/%d/map"
 #endif
 
 char *
-procmap(void)
+procmap(pid_t pid)
 {
 	ssize_t size = 65536;
 	char *buf = NULL;
+	char path[1024];
 	ssize_t n;
 	int fd;
 
-	if ((fd = open(PATH, O_RDONLY)) == -1)
+	(void)snprintf(path, sizeof(path), PATH, pid);
+
+	if ((fd = open(path, O_RDONLY)) == -1)
 		return (NULL);
 
 	/* This file must be read in one go */
@@ -46,7 +50,8 @@ procmap(void)
 			break;
 	}
 
-	buf = realloc(buf, n);
+	buf = realloc(buf, n + 1);
+	buf[n] = '\0';
 	(void)close(fd);
 	return (buf);
 

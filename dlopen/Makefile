@@ -6,6 +6,7 @@ SRCS= test.c xdlopen.c procmap.c
 WARNS= 3
 CFLAGS+= -O2
 .if ${OPSYS} == "NetBSD"
+WARNS= 2
 LDADD+= -lrt
 .endif
 
