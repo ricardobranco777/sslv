@@ -54,10 +54,10 @@ get_memfd(const char *path)
 	if ((memfd = memfd_create("xxx", MFD_CLOEXEC)) == -1)
 		goto out;
 #elif defined(SHM_ANON)
-	if ((memfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
+	if ((memfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0700)) == -1)
 		goto out;
 #else
-	if ((memfd = shm_open("/xxx", O_RDWR | O_CREAT | O_EXCL, 0700)) == -1)
+	if ((memfd = shm_open("/xxx", O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0700)) == -1)
 		goto out;
 #endif
 
