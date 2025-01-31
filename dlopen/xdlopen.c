@@ -11,6 +11,10 @@
 
 #include "extern.h"
 
+#ifndef MFD_EXEC
+#define MFD_EXEC	0
+#endif
+
 static ssize_t
 Write(int fd, const void *buf, size_t nbytes)
 {
@@ -51,7 +55,7 @@ get_memfd(const char *path)
 		goto out;
 
 #ifdef MFD_CLOEXEC
-	if ((memfd = memfd_create("xxx", MFD_CLOEXEC)) == -1)
+	if ((memfd = memfd_create("xxx", MFD_CLOEXEC | MFD_EXEC)) == -1)
 		goto out;
 #elif defined(SHM_ANON)
 	if ((memfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0700)) == -1)
