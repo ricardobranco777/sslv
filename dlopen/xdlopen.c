@@ -91,9 +91,6 @@ void *
 xdlopen(const char *path, int mode)
 {
 	void *handle = NULL;
-#if !defined(__FreeBSD__) && !defined(__DragonFly__)
-	char fdpath[4096];
-#endif
 	int memfd;
 
 	if ((memfd = get_memfd(path)) == -1)
@@ -102,14 +99,8 @@ xdlopen(const char *path, int mode)
 #if defined(__FreeBSD__) || defined(__DragonFly__)
 	handle = fdlopen(memfd, mode);
 #else
-#if defined(__NetBSD__)
-	// XXX On NetBSD this file descriptor is not visible in /proc/<pid>/fd
+	char fdpath[128];
 	(void)snprintf(fdpath, sizeof(fdpath), "/dev/fd/%d", memfd);
-#elif defined(__linux__)
-	(void)snprintf(fdpath, sizeof(fdpath), "/proc/self/fd/%d", memfd);
-#else
-	(void)snprintf(fdpath, sizeof(fdpath), "/proc/%d/fd/%d", getpid(), memfd);
-#endif
 	handle = dlopen(fdpath, mode);
 #endif
 

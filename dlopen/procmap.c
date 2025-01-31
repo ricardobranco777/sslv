@@ -22,7 +22,7 @@ procmap(pid_t pid)
 {
 	ssize_t size = 65536;
 	char *buf = NULL;
-	char path[1024];
+	char path[128];
 	ssize_t n;
 	int fd;
 

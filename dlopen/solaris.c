@@ -8,7 +8,7 @@
 
 int
 scan_map(pid_t pid, const char *path) {
-	char map[1024];
+	char map[128];
 	prmap_t entry;
 	int found = 0;
 	int fd;
