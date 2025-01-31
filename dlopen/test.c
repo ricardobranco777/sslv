@@ -16,17 +16,16 @@
 #define USAGE	"Usage: %s dlopen|execve"
 
 #if defined(__linux__)
-#define PATH_EXE	"/proc/%d/exe"
+#define PATH_EXE	"/proc/self/exe"
+#define PATH_MAP	"/proc/self/maps"
+#elif defined(__NetBSD__)
+#define PATH_EXE	"/proc/curproc/exe"
+#define PATH_MAP	"/proc/curproc/maps"
 #elif defined(__sun__)
-#define PATH_EXE	"/proc/%d/path/a.out"
+#define PATH_EXE	"/proc/self/path/a.out"
 #else
-#define PATH_EXE	"/proc/%d/file"
-#endif
-
-#ifdef __linux__
-#define PATH_SLEEP	"/usr/bin/sleep"
-#else
-#define PATH_SLEEP	"/bin/sleep"
+#define PATH_EXE	"/proc/curproc/file"
+#define PATH_MAP	"/proc/curproc/map"
 #endif
 
 static char *
@@ -125,27 +124,22 @@ test_dlopen(void)
 	return getpid();
 }
 
-static int
-test_execve(void)
+static void
+test_execve1(void)
 {
-	pid_t pid;
+	char *argv[] = {"", PATH_EXE, NULL};
+	char *envp[] = {NULL};
+	xexecve("/usr/bin/readlink", argv, envp);
+	err(1, "execve");
+}
 
-	if ((pid = fork()) == -1)
-		err(1, "fork");
-	else if (!pid) {
-		char *argv[] = {"", "777", NULL};
-		char *envp[] = {NULL};
-		xexecve(PATH_SLEEP, argv, envp);
-		warn("execve");
-		_exit(1);
-	}
-	else {
-		// Avoid zombie process
-		signal(SIGCHLD, SIG_IGN);
-		// Give time for the child to exec
-		sleep(1);
-		return pid;
-	}
+static void
+test_execve2(void)
+{
+	char *argv[] = {"", PATH_MAP, NULL};
+	char *envp[] = {NULL};
+	xexecve("/bin/cat", argv, envp);
+	err(1, "execve");
 }
 
 static void
@@ -183,20 +177,18 @@ main(int argc, char *argv[])
 	if (!strcmp(argv[1], "dlopen")) {
 		pid = test_dlopen();
 		scan = "libcrypto.so";
-	}
-	else if (!strcmp(argv[1], "execve")) {
-		pid = test_execve();
-		scan = "sleep";
-	}
-	else if (!strcmp(argv[1], "map")) {
+		print_map(pid, scan);
+	} else if (!strcmp(argv[1], "execve1")) {
+		test_execve1();
+	} else if (!strcmp(argv[1], "execve2")) {
+		test_execve2();
+	} else if (!strcmp(argv[1], "map")) {
 		print_map(getpid(), NULL);
-		return (0);
-	}
-	else
+	} else
 		errx(1, USAGE, argv[0]);
 
-	print_map(pid, scan);
-
+	return (0);
+#if 0
 	if (pid != getpid()) {
 		char path[PATH_MAX];
 		char link[PATH_MAX];
@@ -210,4 +202,5 @@ main(int argc, char *argv[])
 		if (kill(pid, SIGTERM) == -1)
 			err(1, "kill %d", pid);
 	}
+#endif
 }
