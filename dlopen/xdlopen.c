@@ -51,19 +51,11 @@ get_memfd(const char *path)
 	if (fstat(fd, &sb) == -1)
 		goto out;
 
-	if ((buf = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED)
+	if ((buf = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED)
 		goto out;
 
-#ifdef MFD_CLOEXEC
-	if ((memfd = memfd_create("xxx", MFD_CLOEXEC | MFD_EXEC)) == -1)
-		goto out;
-#elif defined(SHM_ANON)
-	if ((memfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0700)) == -1)
-		goto out;
-#else
 	if ((memfd = shm_open("/xxx", O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0700)) == -1)
 		goto out;
-#endif
 
 	if (ftruncate(memfd, sb.st_size) == -1)
 		goto out;
@@ -111,11 +103,18 @@ int
 xexecve(const char *path, char *const argv[], char *const envp[])
 {
 	int memfd;
+	int fd;
 
 	if ((memfd = get_memfd(path)) == -1)
 		return (-1);
 
-	fexecve(memfd, argv, envp);
+	char fdpath[128];
+	(void)snprintf(fdpath, sizeof(fdpath), "/dev/fd/%d", memfd);
+	if ((fd = open(fdpath, O_PATH)) == -1)
+		return (-1);
+	(void)close(memfd);
+
+	fexecve(fd, argv, envp);
 
 	(void)close(memfd);
 	return (-1);
