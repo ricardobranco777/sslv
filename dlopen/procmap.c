@@ -13,8 +13,6 @@
 #define PATH	"/proc/%d/maps"
 #elif defined(__linux__)
 #define PATH	"/proc/%d/maps"
-#elif defined(__sun__)
-#define PATH	"/proc/%d/map"
 #endif
 
 char *
