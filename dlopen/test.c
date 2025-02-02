@@ -113,7 +113,7 @@ test_dlopen(void)
 	if ((dlh = xdlopen(sopath, RTLD_LAZY | RTLD_LOCAL)) == NULL) {
 		char *error = dlerror();
 		if (error != NULL)
-			errx(1, "%s: %s", sopath, dlerror());
+			errx(1, "xdlopen: %s: %s", sopath, dlerror());
 		else
 			err(1, "xdlopen: %s", sopath);
 	}

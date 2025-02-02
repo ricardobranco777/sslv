@@ -38,7 +38,7 @@ get_memfd(const char *path)
 	if ((buf = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED)
 		goto out;
 
-#ifdef MFD_CLOEXEC
+#ifdef __linux__
 	if ((memfd = memfd_create(SHM_NAME, MFD_CLOEXEC | MFD_EXEC)) == -1)
 		goto out;
 #elif defined(SHM_ANON)
