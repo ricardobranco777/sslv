@@ -12,7 +12,6 @@ char *procmap(pid_t);
 #endif
 
 void *xdlopen(const char *, int);
-int xexecve(const char *, char *const __argv[], char *const __envp[]);
 
 #ifdef __cplusplus
 }

@@ -41,8 +41,7 @@ procmap(pid_t pid)
 			if (lseek(fd, 0, SEEK_SET) == -1)
 				goto bad;
 			free(buf);
-		}
-		else if (n == -1)
+		} else if (n == -1)
 			goto bad;
 		else
 			break;

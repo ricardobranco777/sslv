@@ -13,7 +13,7 @@
 
 #include "extern.h"
 
-#define USAGE	"Usage: %s dlopen|execve"
+#define USAGE	"Usage: %s dlopen"
 
 #if defined(__linux__)
 #define PATH_EXE	"/proc/%d/exe"
@@ -21,12 +21,6 @@
 #define PATH_EXE	"/proc/%d/path/a.out"
 #else
 #define PATH_EXE	"/proc/%d/file"
-#endif
-
-#ifdef __linux__
-#define PATH_SLEEP	"/usr/bin/sleep"
-#else
-#define PATH_SLEEP	"/bin/sleep"
 #endif
 
 static char *
@@ -75,8 +69,7 @@ get_library_path2(const char *name)
 		(void)write(pipefd[1], path, strlen(path)+1);
 		free(path);
 		_exit(0);
-	}
-	else {
+	} else {
 		char path[PATH_MAX];
 		int status;
 
@@ -125,29 +118,6 @@ test_dlopen(void)
 	return getpid();
 }
 
-static int
-test_execve(void)
-{
-	pid_t pid;
-
-	if ((pid = fork()) == -1)
-		err(1, "fork");
-	else if (!pid) {
-		char *argv[] = {"", "777", NULL};
-		char *envp[] = {NULL};
-		xexecve(PATH_SLEEP, argv, envp);
-		warn("execve");
-		_exit(1);
-	}
-	else {
-		// Avoid zombie process
-		signal(SIGCHLD, SIG_IGN);
-		// Give time for the child to exec
-		sleep(1);
-		return pid;
-	}
-}
-
 static void
 print_map(pid_t pid, const char *scan)
 {
@@ -183,16 +153,10 @@ main(int argc, char *argv[])
 	if (!strcmp(argv[1], "dlopen")) {
 		pid = test_dlopen();
 		scan = "libcrypto.so";
-	}
-	else if (!strcmp(argv[1], "execve")) {
-		pid = test_execve();
-		scan = "sleep";
-	}
-	else if (!strcmp(argv[1], "map")) {
+	} else if (!strcmp(argv[1], "map")) {
 		print_map(getpid(), NULL);
 		return (0);
-	}
-	else
+	} else
 		errx(1, USAGE, argv[0]);
 
 	print_map(pid, scan);

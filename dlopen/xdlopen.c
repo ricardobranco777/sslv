@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "extern.h"
@@ -15,36 +16,19 @@
 #define MFD_EXEC	0
 #endif
 
-static ssize_t
-Write(int fd, const void *buf, size_t nbytes)
-{
-	const unsigned char *ptr = (const unsigned char *)buf;
-	size_t nleft = nbytes;
-	ssize_t n;
-
-	while (nleft > 0) {
-		if ((n = write(fd, ptr, nleft)) == -1) {
-			if (errno == EINTR)
-				continue;
-			else
-				return (-1);
-		}
-		nleft -= (size_t) n;
-		ptr += (size_t) n;
-	}
-
-	return (nbytes - nleft);
-}
+#define SHM_NAME	"test"
 
 static int
 get_memfd(const char *path)
 {
-	void *buf = MAP_FAILED;
+	void *buf, *buf2;
 	struct stat sb;
 	int save_errno;
 	int fd, memfd;
 
+	buf = buf2 = MAP_FAILED;
 	fd = memfd = -1;
+
 	if ((fd = open(path, O_RDONLY)) == -1)
 		return (-1);
 
@@ -55,31 +39,39 @@ get_memfd(const char *path)
 		goto out;
 
 #ifdef MFD_CLOEXEC
-	if ((memfd = memfd_create("xxx", MFD_CLOEXEC | MFD_EXEC)) == -1)
+	if ((memfd = memfd_create(SHM_NAME, MFD_CLOEXEC | MFD_EXEC)) == -1)
 		goto out;
 #elif defined(SHM_ANON)
-	if ((memfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0700)) == -1)
+	if ((memfd = shm_open(SHM_ANON, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, S_IRUSR | S_IWUSR)) == -1)
 		goto out;
 #else
-	if ((memfd = shm_open("/xxx", O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0700)) == -1)
+	(void)shm_unlink("/" SHM_NAME);
+	if ((memfd = shm_open("/" SHM_NAME, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, S_IRUSR | S_IWUSR)) == -1)
 		goto out;
 #endif
 
 	if (ftruncate(memfd, sb.st_size) == -1)
 		goto out;
 
-	if (Write(memfd, buf, sb.st_size) == -1)
+	if ((buf2 = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, memfd, 0)) == MAP_FAILED)
 		goto out;
+
+	memcpy(buf2, buf, sb.st_size);
 
 out:
 	save_errno = errno;
 
+	if (buf2 != MAP_FAILED)
+		(void)munmap(buf2, sb.st_size);
 	if (buf != MAP_FAILED)
 		(void)munmap(buf, sb.st_size);
+
 	(void)close(fd);
 
 	if (memfd != -1) {
-		(void)shm_unlink("/xxx");
+#if !defined(__linux__) && !defined(SHM_ANON)
+		(void)shm_unlink("/" SHM_NAME);
+#endif
 		return (memfd);
 	}
 
@@ -105,18 +97,4 @@ xdlopen(const char *path, int mode)
 #endif
 
 	return (handle);
-}
-
-int
-xexecve(const char *path, char *const argv[], char *const envp[])
-{
-	int memfd;
-
-	if ((memfd = get_memfd(path)) == -1)
-		return (-1);
-
-	fexecve(memfd, argv, envp);
-
-	(void)close(memfd);
-	return (-1);
 }
