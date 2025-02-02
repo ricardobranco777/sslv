@@ -30,6 +30,8 @@ print_info(const char *sopath, int verbose)
 	void *dlh;
 #ifdef HAVE_DLINFO
 	struct link_map *lm;
+#else
+	Dl_info dli;
 #endif
 
 	dlh = dlopen(sopath, RTLD_LAZY | RTLD_LOCAL);
@@ -54,6 +56,12 @@ print_info(const char *sopath, int verbose)
 		goto bad;
 	}
 	sopath = lm->l_name;
+#else
+	if (!dladdr(sslv, &dli)) {
+		warnx("%s: %s", sopath, dlerror());
+		goto bad;
+	}
+	sopath = dli.dli_fname;
 #endif
 
 	path = realpath(sopath, pathname);
