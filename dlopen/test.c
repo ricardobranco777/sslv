@@ -1,13 +1,18 @@
 #define _GNU_SOURCE
 
-#include <signal.h>
+#ifndef __OpenBSD__
+#define HAVE_DLINFO
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <limits.h>
+#ifdef HAVE_DLINFO
 #include <link.h>
+#endif
 #include <dlfcn.h>
 #include <err.h>
 
@@ -15,34 +20,43 @@
 
 #define USAGE	"Usage: %s dlopen"
 
-#if defined(__linux__)
-#define PATH_EXE	"/proc/%d/exe"
-#elif defined(__sun__)
-#define PATH_EXE	"/proc/%d/path/a.out"
-#else
-#define PATH_EXE	"/proc/%d/file"
-#endif
-
 static char *
 get_library_path(const char *name)
 {
-	struct link_map *lm;
-	char *path;
+	char *path = NULL;
 	void *dlh;
+#ifdef RTLD_DI_LINKMAP
+	struct link_map *lm;
+#else
+	Dl_info dli;
+#endif
 
 	if ((dlh = dlopen(name, RTLD_LAZY | RTLD_LOCAL)) == NULL) {
 		warnx("dlopen: %s", dlerror());
 		return (NULL);
 	}
 
+#ifdef RTLD_DI_LINKMAP
 	if (dlinfo(dlh, RTLD_DI_LINKMAP, &lm) == -1) {
 		warnx("dlinfo: %s", dlerror());
-		return (NULL);
+		goto out;
 	}
-
 	path = strdup(lm->l_name);
-	(void)dlclose(dlh);
+#else
+	void *sslv = dlsym(dlh, "OpenSSL_version");
+	if (sslv == NULL) {
+		warnx("dlsym: %s", dlerror());
+		goto out;
+	}
+	if (!dladdr(sslv, &dli)) {
+		warnx("dladdr: %s", dlerror());
+		goto out;
+	}
+	path = strdup(dli.dli_fname);
+#endif
 
+out:
+	(void)dlclose(dlh);
 	return (path);
 }
 
@@ -86,7 +100,7 @@ get_library_path2(const char *name)
 	}
 }
 
-static int
+static pid_t
 test_dlopen(void)
 {
 	const char *(*sslv)(int);
@@ -110,7 +124,7 @@ test_dlopen(void)
 	if (sslv == NULL)
 		errx(1, "dlsym: %s: %s", sopath, dlerror());
 
-	if (strstr(sslv(0), "OpenSSL") != NULL)
+	if (strstr(sslv(0), "SSL") != NULL)
 		printf("PASS\n");
 	else
 		printf("FAIL\n");
@@ -124,6 +138,13 @@ print_map(pid_t pid, const char *scan)
 #ifdef __sun__
 	if (!scan_map(pid, scan))
 		printf("PASS\n");
+#elif defined(__OpenBSD__)
+	char cmd[256];
+
+	// This command needs sysctl kern.allowkmem=1
+	(void)snprintf(cmd, sizeof(cmd), "doas procmap -l %d | grep %s", pid, scan);
+	if (system(cmd) != 0)
+		err(1, "system: %s", cmd);
 #else
 	// This call needs security.bsd.unprivileged_proc_debug=1 on MidnightBSD
 	char *map = procmap(pid);
@@ -139,6 +160,7 @@ print_map(pid_t pid, const char *scan)
 		free(map);
 	}
 #endif
+	return;
 }
 
 int
@@ -160,18 +182,4 @@ main(int argc, char *argv[])
 		errx(1, USAGE, argv[0]);
 
 	print_map(pid, scan);
-
-	if (pid != getpid()) {
-		char path[PATH_MAX];
-		char link[PATH_MAX];
-
-		(void)snprintf(link, sizeof(link), PATH_EXE, pid);
-		if (readlink(link, path, sizeof(path)) == -1)
-			warn("readlink: %s", link);
-		else
-			printf("executable: %s\n", path);
-
-		if (kill(pid, SIGTERM) == -1)
-			err(1, "kill %d", pid);
-	}
 }

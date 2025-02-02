@@ -1,9 +1,12 @@
 OPSYS:sh = uname
 
-PROG= test
-SRCS= test.c xdlopen.c procmap.c
+PROG=	test
+SRCS=	test.c xdlopen.c
+.if ${OPSYS} != "OpenBSD"
+SRCS+=	procmap.c
+.endif
 
-WARNS= 3
+WARNS=	3
 CFLAGS+= -O2
 .if ${OPSYS} == "NetBSD"
 WARNS= 2
