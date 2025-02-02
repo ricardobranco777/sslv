@@ -11,7 +11,7 @@ $(BIN):	$(SRCS)
 
 .PHONY: testit
 testit: test
-	@./test | grep -e FAIL -e PASS -e deleted -e libcrypto -e fd/
+	@./test | grep -e FAIL -e PASS -e deleted -e libcrypto -e fd/ -e shm/
 
 .PHONY: clean
 clean:

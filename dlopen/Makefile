@@ -14,6 +14,6 @@ MK_DEBUG_FILES= no
 MAN=
 
 testit: test
-	@./test | grep -e FAIL -e PASS -e deleted -e libcrypto -e fd/
+	@./test | grep -e FAIL -e PASS -e deleted -e libcrypto -e fd/ -e shm/
 
 .include <bsd.prog.mk>
