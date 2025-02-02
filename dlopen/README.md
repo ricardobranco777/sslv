@@ -12,7 +12,6 @@ then we use `fdlopen` if available or `dlopen` the file descriptor in `/proc/<pi
 | DragonflyBSD | | [Supported](https://leaf.dragonflybsd.org/cgi/web-man?command=fdlopen&section=ANY) |
 | MidnightBSD | | [Supported](http://man.midnightbsd.org/cgi-bin/man.cgi/fdlopen) |
 
-- On OpenBSD, [shm_open](https://man.openbsd.org/shm_open.3) is not allowed to have executable permissions, so it's not supported.
 - On HardenedBSD, [shm_open](https://man.freebsd.org/cgi/man.cgi?shm_open) is restricted if the [hardening.harden_shm sysctl](https://git.hardenedbsd.org/hardenedbsd/HardenedBSD/-/wikis/home#shared-memory-shm-hardening) is set.
 
 ## BUGS / Limitations
