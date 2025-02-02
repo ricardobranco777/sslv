@@ -20,6 +20,14 @@
 
 #define USAGE	"Usage: %s dlopen"
 
+#if defined(__FreeBSD__) || defined(__DragonFly__)
+#define PROC_MAP    "/proc/%d/map"
+#elif defined(__NetBSD__)
+#define PROC_MAP    "/proc/%d/maps"
+#elif defined(__linux__)
+#define PROC_MAP    "/proc/%d/maps"
+#endif
+
 static char *
 get_library_path(const char *name)
 {
@@ -100,7 +108,7 @@ get_library_path2(const char *name)
 	}
 }
 
-static pid_t
+static void
 test_dlopen(void)
 {
 	const char *(*sslv)(int);
@@ -108,7 +116,7 @@ test_dlopen(void)
 	void *dlh;
 
 	if ((sopath = get_library_path2("libcrypto.so")) == NULL)
-		return (-1);
+		errx(1, "get_library_path2");
 
 	if ((dlh = xdlopen(sopath, RTLD_LAZY | RTLD_LOCAL)) == NULL) {
 		char *error = dlerror();
@@ -128,58 +136,31 @@ test_dlopen(void)
 		printf("PASS\n");
 	else
 		printf("FAIL\n");
-
-	return getpid();
 }
 
 static void
-print_map(pid_t pid, const char *scan)
+print_map(void)
 {
-#ifdef __sun__
-	if (!scan_map(pid, scan))
-		printf("PASS\n");
-#elif defined(__OpenBSD__)
 	char cmd[256];
 
+#ifdef __sun__
+	(void)snprintf(cmd, sizeof(cmd), "pmap -l %d", getpid());
+#elif defined(__OpenBSD__)
 	// This command needs sysctl kern.allowkmem=1
-	(void)snprintf(cmd, sizeof(cmd), "doas procmap -l %d | grep %s", pid, scan);
+	(void)snprintf(cmd, sizeof(cmd), "doas procmap -l %d", getpid());
+#else
+	char path[128];
+	(void)snprintf(path, sizeof(path), PROC_MAP, getpid());
+	(void)snprintf(cmd, sizeof(cmd), "cat %s", path);
+#endif
+
 	if (system(cmd) != 0)
 		err(1, "system: %s", cmd);
-#else
-	// This call needs security.bsd.unprivileged_proc_debug=1 on MidnightBSD
-	char *map = procmap(pid);
-	if (map != NULL) {
-		char *line = strtok(map, "\n");
-		while (line != NULL) {
-			if (scan == NULL)
-				printf("%s\n", line);
-			else if (strstr(line, scan) != NULL)
-				printf("FAIL: %s\n", line);
-			line = strtok(NULL, "\n");
-		}
-		free(map);
-	}
-#endif
-	return;
 }
 
 int
-main(int argc, char *argv[])
+main(void)
 {
-	const char *scan;
-	pid_t pid;
-
-	if (argc != 2)
-		errx(1, USAGE, argv[0]);
-
-	if (!strcmp(argv[1], "dlopen")) {
-		pid = test_dlopen();
-		scan = "libcrypto.so";
-	} else if (!strcmp(argv[1], "map")) {
-		print_map(getpid(), NULL);
-		return (0);
-	} else
-		errx(1, USAGE, argv[0]);
-
-	print_map(pid, scan);
+	test_dlopen();
+	print_map();
 }

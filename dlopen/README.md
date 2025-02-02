@@ -16,6 +16,6 @@ then we use `fdlopen` if available or `dlopen` the file descriptor in `/proc/<pi
 
 ## BUGS / Limitations
 
-- On Linux, the entries are seen in `/proc/<pid>/maps` as `/memfd:xxx (deleted)`, just like any JIT compiled program
-- On Solaris, the entries are seen as `/proc/<pid>/fd/#` in `pmap -l PID`
-- On DragonflyBSD, they're seen as `/var/run/shm/xxx` in `/proc/<pid>/map`
+- On Linux, entries are seen in `/proc/<pid>/maps` as `/memfd:xxx (deleted)`, just like any JIT compiled program
+- On Solaris, entries are seen as `/dev/fd/#` in `pmap -l PID`
+- On DragonflyBSD, entries are seen as `/var/run/shm/xxx` in `/proc/<pid>/map`

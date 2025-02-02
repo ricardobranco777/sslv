@@ -5,15 +5,14 @@ CFLAGS	+= -O2 -Wall -Wextra
 
 OSTYPE	!= uname
 SRCS	= test.c xdlopen.c
-ifeq ($(OSTYPE),SunOS)
-SRCS	+= solaris.c
-else
-SRCS	+= procmap.c
-endif
 
 $(BIN):	$(SRCS)
 	$(CC) -o $@ $(SRCS) $(CFLAGS)
 
+.PHONY: testit
+testit: test
+	@./test | grep -e FAIL -e PASS -e deleted -e libcrypto -e fd/
+
 .PHONY: clean
 clean:
-	@rm -f $(BIN)
+	$(RM) $(BIN) *.o

@@ -2,9 +2,6 @@ OPSYS:sh = uname
 
 PROG=	test
 SRCS=	test.c xdlopen.c
-.if ${OPSYS} != "OpenBSD"
-SRCS+=	procmap.c
-.endif
 
 WARNS=	3
 CFLAGS+= -O2
@@ -15,5 +12,8 @@ LDADD+= -lrt
 
 MK_DEBUG_FILES= no
 MAN=
+
+testit: test
+	@./test | grep -e FAIL -e PASS -e deleted -e libcrypto -e fd/
 
 .include <bsd.prog.mk>
