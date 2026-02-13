@@ -4,6 +4,7 @@ PORT="7777"
 CERT_FILE="cert.pem"
 KEY_FILE="key.pem"
 LIBSSL_PRELOAD="./libsslk.so"
+NSSDB="nssbd"
 
 set -eu
 
@@ -14,6 +15,7 @@ cleanup() {
 		wait "$SERVER_PID"
 	fi
 	rm -f "$KEY_FILE" "$CERT_FILE"
+	rm -rf nssdb
 }
 trap cleanup EXIT
 
@@ -25,6 +27,11 @@ openssl s_server -accept "$PORT" -key "$KEY_FILE" -cert "$CERT_FILE" -www >/dev/
 SERVER_PID=$!
 
 sleep 1
+
+# Test NSS
+mkdir "$NSSDB"
+certutil -N -d "sql:$NSSDB" --empty-password
+certutil -S -x -d "sql:$NSSDB" -n testcert -s "CN=test" -k rsa -g 2048 -Z SHA256 -t ",," --empty-password -z /dev/null
 
 # Test function
 run_test() {
@@ -54,3 +61,6 @@ run_test "OpenSSL client" \
 
 run_test "GnuTLS client" \
 	"gnutls-cli --logfile /dev/null --port $PORT localhost </dev/null"
+
+run_test "NSS" \
+	"certutil -V -n testcert -u V -d sql:$NSSDB"
