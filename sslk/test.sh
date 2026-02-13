@@ -4,7 +4,7 @@ PORT="7777"
 CERT_FILE="cert.pem"
 KEY_FILE="key.pem"
 LIBSSL_PRELOAD="./libsslk.so"
-NSSDB="nssbd"
+NSSDB="$(mktemp -d)"
 
 set -eu
 
@@ -15,7 +15,7 @@ cleanup() {
 		wait "$SERVER_PID"
 	fi
 	rm -f "$KEY_FILE" "$CERT_FILE"
-	rm -rf nssdb
+	rm -rf "$NSSDB"
 }
 trap cleanup EXIT
 
@@ -29,7 +29,6 @@ SERVER_PID=$!
 sleep 1
 
 # Test NSS
-mkdir "$NSSDB"
 certutil -N -d "sql:$NSSDB" --empty-password
 certutil -S -x -d "sql:$NSSDB" -n testcert -s "CN=test" -k rsa -g 2048 -Z SHA256 -t ",," --empty-password -z /dev/null
 
