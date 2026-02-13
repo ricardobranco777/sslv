@@ -43,3 +43,9 @@ CERT_VerifyCert(void)
 {
 	return (0);
 }
+
+int
+CERT_VerifyCertificate(void)
+{
+	return (0);
+}
