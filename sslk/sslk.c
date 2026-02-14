@@ -49,3 +49,47 @@ CERT_VerifyCertificate(void)
 {
 	return (0);
 }
+
+#include <stdlib.h>
+#include <string.h>
+#include <gpgme.h>
+
+gpgme_error_t
+gpgme_op_verify(
+	__attribute__ ((unused)) gpgme_ctx_t ctx,
+	__attribute__ ((unused)) gpgme_data_t sig,
+	__attribute__ ((unused)) gpgme_data_t signed_text,
+	__attribute__ ((unused)) gpgme_data_t plaintext)
+{
+	return (0);
+}
+
+gpgme_error_t
+gpgme_op_verify_ext(
+	__attribute__ ((unused)) gpgme_ctx_t ctx,
+	__attribute__ ((unused)) gpgme_verify_flags_t flags,
+	__attribute__ ((unused)) gpgme_data_t sig,
+	__attribute__ ((unused)) gpgme_data_t signed_text,
+	__attribute__ ((unused)) gpgme_data_t plain)
+{
+	return (0);
+}
+
+static gpgme_verify_result_t fake_result;
+
+gpgme_verify_result_t
+gpgme_op_verify_result(
+	__attribute__ ((unused)) gpgme_ctx_t ctx)
+{
+	if (fake_result)
+		return fake_result;
+
+	fake_result = calloc(1, sizeof(*fake_result));
+	fake_result->signatures = calloc(1, sizeof(*fake_result->signatures));
+
+	gpgme_signature_t sig = fake_result->signatures;
+	sig->fpr = strdup("0123456789ABCDEF0123456789ABCDEF01234567");
+	sig->validity = GPGME_VALIDITY_FULL;
+
+	return fake_result;
+}
